@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2016-2018 yutiansut/QUANTAXIS
+# Copyright (c) 2016-2019 yutiansut/QUANTAXIS
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -40,12 +40,13 @@ from QUANTAXIS.QAUtil import (QA_Setting, QA_util_code_tolist,
 from QUANTAXIS.QAUtil.QASetting import DATABASE, DATABASE_ASYNC
 
 
+
+
 async def QA_fetch_stock_day(code, start, end, format='numpy', frequence='day', collections=DATABASE_ASYNC.stock_day):
 
     '获取股票日线'
     start = str(start)[0:10]
     end = str(end)[0:10]
-    #code= [code] if isinstance(code,str) else code
 
     # code checking
     code = QA_util_code_tolist(code)
@@ -57,9 +58,11 @@ async def QA_fetch_stock_day(code, start, end, format='numpy', frequence='day', 
             'code': {'$in': code}, "date_stamp": {
                 "$lte": QA_util_date_stamp(end),
                 "$gte": QA_util_date_stamp(start)}})
-        #res=[QA_util_dict_remove_key(data, '_id') for data in cursor]
-
-        res = pd.DataFrame([item async for item in cursor])
+        try:
+            res = pd.DataFrame([item async for item in cursor])
+        except SyntaxError:
+            print('THIS PYTHON VERSION NOT SUPPORT "async for" function')
+            pass
         try:
             res = res.drop('_id', axis=1).assign(volume=res.vol).query('volume>1').assign(date=pd.to_datetime(
                 res.date)).drop_duplicates((['date', 'code'])).set_index('date', drop=False)
@@ -110,7 +113,11 @@ async def QA_fetch_stock_min(code, start, end, format='numpy', frequence='1min',
         }, 'type': frequence
     })
 
-    res = pd.DataFrame([item async for item in cursor])
+    try:
+        res = pd.DataFrame([item async for item in cursor])
+    except SyntaxError:
+        print('THIS PYTHON VERSION NOT SUPPORT "async for" function')
+        pass
     try:
         res = res.drop('_id', axis=1).assign(volume=res.vol).query('volume>1').assign(datetime=pd.to_datetime(
             res.datetime)).drop_duplicates(['datetime', 'code']).set_index('datetime', drop=False)
@@ -141,7 +148,3 @@ if __name__ == "__main__":
     ))
 
     print(res)
-
-    # loop = asyncio.get_event_loop()
-    # print(id(loop))
-    # loop 内存地址一样 没有被销毁
